@@ -1,0 +1,25 @@
+import { parseRequest } from '@/lib/parseClient'
+import type { SessionUser, User } from '@/types'
+
+export function login(username: string, password: string): Promise<SessionUser> {
+  const query = new URLSearchParams({ username, password })
+  return parseRequest<SessionUser>('GET', `/login?${query}`)
+}
+
+export function fetchCurrentUser(): Promise<User> {
+  return parseRequest<User>('GET', '/users/me')
+}
+
+export function updateUser(objectId: string, patch: Partial<User>): Promise<unknown> {
+  return parseRequest('PUT', `/users/${objectId}`, patch)
+}
+
+export function createUser(
+  draft: Partial<User> & { password: string },
+): Promise<unknown> {
+  return parseRequest('POST', '/users', draft)
+}
+
+export function deleteUser(objectId: string): Promise<unknown> {
+  return parseRequest('DELETE', `/users/${objectId}`)
+}

@@ -1,0 +1,223 @@
+/* ------------------------------------------------------------------ *
+ * Identité visuelle du TC Us : ocre / or pour la navigation,
+ * bleu pour le pied de page. Reprise des couleurs du site d'origine,
+ * regroupées ici en variables plutôt que dispersées dans chaque
+ * composant.
+ * ------------------------------------------------------------------ */
+
+:root {
+  --tc-orange: #c95a1b;
+  --tc-gold: #f0d44a;
+  --tc-blue: #1ea8cb;
+  --tc-ink: #2c3e50;
+  --tc-muted: #6c757d;
+  --tc-navbar-height: 6rem;
+}
+
+body {
+  font-family: Avenir, 'Segoe UI', Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--tc-ink);
+}
+
+/* --- Structure ---------------------------------------------------- */
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+.app-content {
+  flex: 1;
+  padding: 1.5rem;
+  padding-top: calc(var(--tc-navbar-height) + 1.5rem);
+}
+
+/* --- Navigation --------------------------------------------------- */
+
+.tc-navbar {
+  background-image: linear-gradient(315deg, var(--tc-orange) 40%, rgba(240, 212, 74, 0.64) 100%);
+  min-height: var(--tc-navbar-height);
+}
+
+.tc-navbar .nav-link,
+.tc-navbar .navbar-brand,
+.tc-navbar .dropdown-toggle {
+  color: var(--tc-ink);
+  font-weight: 600;
+  background: none;
+  border: 0;
+}
+
+.tc-navbar .nav-link:hover,
+.tc-navbar .nav-link.active {
+  color: #fff;
+}
+
+/* --- Titres et contenus ------------------------------------------- */
+
+.page-title {
+  color: var(--tc-orange);
+  font-weight: 700;
+}
+
+.card-title {
+  color: var(--tc-orange);
+  font-weight: 700;
+}
+
+.text-tc-blue {
+  color: var(--tc-blue);
+}
+
+.prose p {
+  max-width: 65ch;
+}
+
+.side-panel {
+  background: #fbfbfb;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  height: 100%;
+}
+
+.content-slot__block + .content-slot__block {
+  border-top: 1px solid #e9ecef;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+}
+
+.content-slot__signature {
+  margin-top: 1rem;
+}
+
+.content-slot__portrait {
+  width: 10rem;
+  max-width: 100%;
+  border-radius: 0.5rem;
+}
+
+/* --- Accueil ------------------------------------------------------ */
+
+.home-banner,
+.home-bureau {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.home-bureau {
+  max-width: 60rem;
+  margin: 3rem auto 0;
+}
+
+.weather-embed {
+  max-height: 32rem;
+  overflow: hidden;
+}
+
+/* --- Listes et grilles -------------------------------------------- */
+
+.office-portrait,
+.product-image {
+  width: 100%;
+  max-width: 13rem;
+  height: auto;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
+/* --- Administration ----------------------------------------------- */
+
+.admin-panel {
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+}
+
+.admin-preview {
+  max-width: 10rem;
+  height: auto;
+  border-radius: 0.25rem;
+}
+
+.sticky-nav {
+  position: sticky;
+  top: calc(var(--tc-navbar-height) + 1rem);
+}
+
+/* L'éditeur riche doit rester lisible dans une modale. */
+.ql-container {
+  min-height: 12rem;
+}
+
+/* --- Connexion ----------------------------------------------------- */
+
+.login-page {
+  max-width: 32rem;
+  padding-block: 3rem;
+}
+
+.login-card {
+  background: linear-gradient(rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.55)),
+    url('../assets/tennis.jpg') center / cover;
+  border-radius: 0.75rem;
+  padding: 2.5rem;
+  color: #fff;
+}
+
+.login-card .form-label {
+  color: #fff;
+}
+
+/* --- Pied de page -------------------------------------------------- */
+
+.global-footer {
+  background-color: var(--tc-blue);
+  color: #fff;
+  padding-block: 2rem 0;
+}
+
+.global-footer .card-title {
+  color: #fff;
+}
+
+.footer-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  text-align: left;
+}
+
+.footer-link {
+  color: #eaf7fb;
+  text-decoration: underline;
+}
+
+.footer-link:hover {
+  color: #fff;
+}
+
+.partenaires {
+  color: #eaf7fb;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logopart {
+  margin: 0 1rem;
+  height: 3rem;
+  border-radius: 0.25rem;
+}
+
+.footer-baseline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.25);
+  margin-top: 2rem;
+  padding: 1rem;
+  font-size: 0.875rem;
+}
