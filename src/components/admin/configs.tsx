@@ -1,4 +1,4 @@
-import { CONTENT_SLOT_OPTIONS } from '@/api/contents'
+import { CONTENT_SLOT_OPTIONS, isDocumentSlot } from '@/api/contents'
 import { useCollection } from '@/api/hooks'
 import {
   challengeResultsResource,
@@ -24,11 +24,16 @@ import type {
   User,
 } from '@/types'
 
+// Affiché en colonne dans toutes les listes, sans intitulé : l'ordre des
+// lignes suit ce chiffre, autant le lire d'un coup d'œil plutôt qu'en ouvrant
+// chaque formulaire.
 const WEIGHT_FIELD = {
   name: 'weight',
   label: 'Importance (tri décroissant)',
   type: 'number',
   span: 4,
+  column: true,
+  hideColumnLabel: true,
 } as const
 
 export const contentsAdmin: ResourceAdminConfig<Content> = {
@@ -46,11 +51,30 @@ export const contentsAdmin: ResourceAdminConfig<Content> = {
       required: true,
       span: 4,
     },
-    { name: 'description', label: 'Description interne', column: true, span: 8 },
+    // Sur un emplacement « Document — … », ce champ porte l'URL du fichier ;
+    // ailleurs il reste une note interne.
+    {
+      name: 'description',
+      label: 'Description interne — ou URL, sur un emplacement « Document »',
+      column: true,
+      span: 8,
+    },
     { name: 'content', label: 'Contenu', type: 'richtext' },
     { name: 'name', label: 'Signature — nom', column: true, span: 6 },
     { name: 'fonction', label: 'Signature — fonction', column: true, span: 6 },
-    { name: 'image', label: 'Photo', type: 'image' },
+    // Sur un emplacement « Document — … », le même téléversement sert à
+    // héberger le fichier : le champ change de nom et accepte les PDF.
+    {
+      name: 'image',
+      label: 'Photo',
+      labelFor: (draft) =>
+        isDocumentSlot(draft.title)
+          ? 'Document (PDF ou image) — le fichier envoyé sert directement de lien'
+          : 'Photo',
+      acceptFor: (draft) =>
+        isDocumentSlot(draft.title) ? 'application/pdf,image/*' : 'image/*',
+      type: 'image',
+    },
     WEIGHT_FIELD,
   ],
 }

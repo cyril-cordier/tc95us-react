@@ -102,7 +102,14 @@ export function ResourceManager<T extends ParseObject>({
               <tr>
                 {columns.map((field) => (
                   <th key={field.name} scope="col">
-                    {field.label}
+                    {/* Un en-tête peut être masqué visuellement (l'importance,
+                        dont le chiffre se lit seul) sans disparaître pour
+                        autant de la restitution des lecteurs d'écran. */}
+                    {field.hideColumnLabel ? (
+                      <span className="visually-hidden">{field.label}</span>
+                    ) : (
+                      field.label
+                    )}
                   </th>
                 ))}
                 <th scope="col" className="text-end">

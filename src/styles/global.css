@@ -62,6 +62,14 @@ body {
   font-weight: 700;
 }
 
+/* Les blocs de contenu du site d'origine n'ont ni contour ni fond propre :
+   ils se fondent dans la page. Bootstrap 5 dessine par défaut une bordure
+   et un fond blanc sur .card, qu'on neutralise ici. */
+.card {
+  border: none;
+  background: transparent;
+}
+
 .card-title {
   color: var(--tc-orange);
   font-weight: 700;
@@ -145,6 +153,23 @@ body {
 .sticky-nav {
   position: sticky;
   top: calc(var(--tc-navbar-height) + 1rem);
+}
+
+/* Le formulaire des modales d'admin enveloppe header/body/footer, pour que la
+   touche Entrée soumette. Mais `.modal-dialog-scrollable` suppose que ces trois
+   blocs sont les enfants flex directs de `.modal-content` : avec le <form>
+   intercalé, `.modal-body` perd sa hauteur contrainte, son `overflow-y: auto`
+   ne produit plus de barre et le contenu est rogné par le `overflow: hidden`
+   de `.modal-content`. On rend donc le <form> transparent à la mise en page. */
+.modal-dialog-scrollable .modal-content > form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.modal-dialog-scrollable .modal-content > form > .modal-body {
+  min-height: 0;
 }
 
 /* L'éditeur riche doit rester lisible dans une modale. */

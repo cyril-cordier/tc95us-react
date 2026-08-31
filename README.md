@@ -44,7 +44,8 @@ elles ne sont plus écrites en dur dans le code.
 | `VITE_PARSE_APPLICATION_ID` | identifiant d'application Parse |
 | `VITE_PARSE_REST_API_KEY` | clé REST Parse |
 | `VITE_PARSE_JAVASCRIPT_KEY` | clé JavaScript Parse |
-| `VITE_FILESTACK_API_KEY` | upload des images depuis l'admin |
+| `CLOUDINARY_URL` | cloud Cloudinary ciblé par les uploads de l'admin (sans préfixe `VITE_` : lue au build seulement) |
+| `VITE_CLOUDINARY_UPLOAD_PRESET` | upload preset non signé autorisant ces envois |
 | `VITE_GA_MEASUREMENT_ID` | Google Analytics (vide = désactivé) |
 
 ## Architecture
@@ -113,8 +114,10 @@ erreur.
   route `<RequireAuth adminOnly />`.
 - **Tri par date inopérant** — `b.date - a.date` sur des chaînes `JJ/MM/AAAA`
   donne toujours `NaN`. Les dates sont maintenant analysées avant comparaison.
-- **Clé Filestack en dur** dans deux composants — passée en variable
-  d'environnement.
+- **Clé Filestack en dur** dans quatre composants — l'hébergement des fichiers
+  passe désormais par Cloudinary, configuré par variables d'environnement.
+  Seul le nom du cloud atteint le navigateur : l'envoi utilise un upload
+  preset non signé, aucun secret n'est embarqué dans le bundle.
 - **Fuite mémoire au téléchargement** — la fiche d'inscription créait un lien et
   un object URL jamais libérés, empilés à chaque clic.
 - **Mutation de l'état global depuis un composant** — `getAllContents.splice()`

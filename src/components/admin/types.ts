@@ -23,8 +23,14 @@ export interface FieldDef<T> {
   optionsFrom?: string
   /** Affiche le champ comme colonne du tableau. */
   column?: boolean
+  /** Colonne sans intitulé visible (l'en-tête reste annoncé aux lecteurs d'écran). */
+  hideColumnLabel?: boolean
   /** Rendu personnalisé dans le tableau (score groupé, badge…). */
   render?: (item: T) => ReactNode
+  /** Étiquette dans le formulaire quand elle dépend de la ligne éditée (le tableau garde `label`). */
+  labelFor?: (draft: Partial<T>) => string
+  /** Types de fichiers d'un champ `image`, quand ils dépendent de la ligne éditée. */
+  acceptFor?: (draft: Partial<T>) => string
   /** Largeur du champ dans le formulaire, sur 12. */
   span?: number
   /** Champ absent du formulaire de modification (ex. mot de passe). */

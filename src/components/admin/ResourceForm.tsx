@@ -35,7 +35,8 @@ export function ResourceForm<T>({
           <Col key={field.name} xs={12} md={field.span ?? 12}>
             {field.type === 'image' ? (
               <ImageField
-                label={field.label}
+                label={field.labelFor?.(draft) ?? field.label}
+                accept={field.acceptFor?.(draft) ?? 'image/*'}
                 value={String(value)}
                 onChange={(url) => onChange(field.name, url)}
               />
