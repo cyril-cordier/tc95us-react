@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Alert from 'react-bootstrap/Alert'
 import Button from 'react-bootstrap/Button'
-import { CONTENT_SLOTS, DOCUMENT_SLOTS, useDocumentUrls } from '@/api/contents'
+import { CONTENT_SLOTS, DOCUMENT_SLOTS, useSlotUrls } from '@/api/contents'
 import { downloadFile } from '@/lib/download'
 import { ContentSlot } from '@/components/content/ContentSlot'
 import { TwoColumnPage } from '@/components/layout/TwoColumnPage'
@@ -47,13 +47,13 @@ function subscriptionFilename(url: string): string {
 export default function Tarifs() {
   const [error, setError] = useState<string | null>(null)
   const [isDownloading, setDownloading] = useState(false)
-  const { documentUrl } = useDocumentUrls()
+  const { slotUrl } = useSlotUrls()
 
-  const subscriptionUrl = documentUrl(SUBSCRIPTION_FORM_SLOT)
+  const subscriptionUrl = slotUrl(SUBSCRIPTION_FORM_SLOT)
 
   const fftDocuments = FFT_DOCUMENTS.map((document) => ({
     ...document,
-    href: documentUrl(document.slot),
+    href: slotUrl(document.slot),
   })).filter((document) => document.href !== undefined)
 
   async function handleDownload() {

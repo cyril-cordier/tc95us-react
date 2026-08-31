@@ -2,14 +2,21 @@ import Card from 'react-bootstrap/Card'
 import Col from 'react-bootstrap/Col'
 import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row'
-import { CONTENT_SLOTS } from '@/api/contents'
+import { CONTENT_SLOTS, MEDIA_SLOTS, useSlotUrls } from '@/api/contents'
 import banner from '@/assets/bg-tennis5.jpg'
-import bureau from '@/assets/bureau_small.jpg'
+import bureauParDefaut from '@/assets/bureau_small.jpg'
 import logoAnime from '@/assets/GIF_TC_Us.gif'
 import { ContentSlot } from '@/components/content/ContentSlot'
 import { ResponsiveEmbed } from '@/components/ui/ResponsiveEmbed'
 
 export default function Home() {
+  const { slotUrl } = useSlotUrls()
+
+  // L'image livrée avec le site sert de repli : la page garde sa photo tant
+  // qu'aucun bloc « Photo du bureau » n'a été créé en admin, et n'attend pas
+  // la réponse du réseau pour l'afficher.
+  const bureau = slotUrl(MEDIA_SLOTS.photoBureau) ?? bureauParDefaut
+
   return (
     <>
       <img src={banner} alt="" className="home-banner" />

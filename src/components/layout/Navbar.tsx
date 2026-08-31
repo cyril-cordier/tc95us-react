@@ -2,7 +2,7 @@ import BsNavbar from 'react-bootstrap/Navbar'
 import Container from 'react-bootstrap/Container'
 import Nav from 'react-bootstrap/Nav'
 import NavDropdown from 'react-bootstrap/NavDropdown'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import logo from '@/assets/LOGO_T_US_RVB.png'
 import { useAuth } from '@/auth/useAuth'
 
@@ -22,6 +22,14 @@ const COMPETITION_LINKS = [
 
 export function Navbar() {
   const { isAuthenticated, isAdmin, signOut } = useAuth()
+  const navigate = useNavigate()
+
+  // La redirection vit ici et non dans `signOut` : `AuthProvider` enveloppe le
+  // `RouterProvider`, il n'a donc pas accès aux hooks de navigation.
+  function handleSignOut() {
+    signOut()
+    navigate('/')
+  }
 
   return (
     <BsNavbar expand="lg" fixed="top" className="tc-navbar" collapseOnSelect>
@@ -65,7 +73,7 @@ export function Navbar() {
                   Admin
                 </Nav.Link>
               ) : null}
-              <Nav.Link as="button" onClick={signOut}>
+              <Nav.Link as="button" onClick={handleSignOut}>
                 Déconnexion
               </Nav.Link>
             </Nav>

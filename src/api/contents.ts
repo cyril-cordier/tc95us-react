@@ -39,16 +39,44 @@ export const DOCUMENT_SLOTS = {
 
 export type DocumentSlot = (typeof DOCUMENT_SLOTS)[keyof typeof DOCUMENT_SLOTS]
 
+/**
+ * Emplacements dont le bloc porte une image de la page plutôt que du texte.
+ * Même mécanique que les documents — c'est une URL rangée dans un bloc — mais
+ * le champ photo du formulaire suffit, sans le détour du PDF.
+ */
+export const MEDIA_SLOTS = {
+  photoBureau: 'Photo du bureau (page Accueil)',
+} as const
+
+export type MediaSlot = (typeof MEDIA_SLOTS)[keyof typeof MEDIA_SLOTS]
+
+/** Tout emplacement dont le bloc désigne un fichier par son URL. */
+export type UrlSlot = DocumentSlot | MediaSlot
+
 export const CONTENT_SLOT_OPTIONS = [
   ...Object.values(CONTENT_SLOTS),
   ...Object.values(DOCUMENT_SLOTS),
+  ...Object.values(MEDIA_SLOTS),
 ]
 
 const DOCUMENT_SLOT_VALUES: readonly string[] = Object.values(DOCUMENT_SLOTS)
 
-/** Vrai pour un emplacement dont la description porte l'URL d'un document. */
+const URL_SLOT_VALUES: readonly string[] = [
+  ...DOCUMENT_SLOT_VALUES,
+  ...Object.values(MEDIA_SLOTS),
+]
+
+/**
+ * Vrai pour un emplacement attendant un document téléchargeable. Sert au
+ * formulaire d'admin, qui n'y ouvre l'envoi aux PDF que dans ce cas.
+ */
 export function isDocumentSlot(title?: string): boolean {
   return title !== undefined && DOCUMENT_SLOT_VALUES.includes(title)
+}
+
+/** Vrai pour tout emplacement porteur d'une URL, document ou image. */
+export function isUrlSlot(title?: string): boolean {
+  return title !== undefined && URL_SLOT_VALUES.includes(title)
 }
 
 /** Tous les blocs d'un emplacement donné, déjà triés par importance. */
@@ -61,24 +89,17 @@ export function useContentSlot(slot: ContentSlot) {
   }
 }
 
-/**
- * Résout les URLs des documents publiés en base.
- *
- * Les contenus arrivent déjà triés par importance décroissante : pour un
- * emplacement donné, le premier bloc rencontré gagne. On peut donc préparer un
- * remplaçant avec une importance plus faible sans supprimer le lien en place.
- */
 const URL_PATTERN = /https?:\/\/[^\s"'<>]+/i
 
 /**
- * Cherche l'URL du document dans les trois champs où elle peut légitimement
- * se trouver : la description (le champ documenté), l'image (que le
- * téléversement remplit tout seul) et le contenu (si l'URL a été collée dans
- * l'éditeur). Sur un emplacement « Document — … » aucun de ces champs n'a
- * d'autre usage : mieux vaut les accepter tous que faire disparaître le bouton
- * parce que la saisie s'est faite dans la mauvaise case.
+ * Cherche l'URL du fichier dans les trois champs où elle peut légitimement se
+ * trouver : la description, l'image (que le téléversement remplit tout seul)
+ * et le contenu (si l'URL a été collée dans l'éditeur). Sur ces emplacements
+ * aucun de ces champs n'a d'autre usage : mieux vaut les accepter tous que
+ * faire disparaître le fichier parce que la saisie s'est faite dans la
+ * mauvaise case.
  */
-function findDocumentUrl(content: Content): string | undefined {
+function findSlotUrl(content: Content): string | undefined {
   for (const field of [content.description, content.image, content.content]) {
     const match = field?.match(URL_PATTERN)
     if (match) return match[0]
@@ -87,7 +108,14 @@ function findDocumentUrl(content: Content): string | undefined {
   return undefined
 }
 
-export function useDocumentUrls() {
+/**
+ * Résout les URLs des fichiers publiés en base, documents comme images.
+ *
+ * Les contenus arrivent déjà triés par importance décroissante : pour un
+ * emplacement donné, le premier bloc rencontré gagne. On peut donc préparer un
+ * remplaçant avec une importance plus faible sans supprimer celui en place.
+ */
+export function useSlotUrls() {
   const query = useCollection(contentsResource)
   const { data } = query
 
@@ -95,9 +123,9 @@ export function useDocumentUrls() {
     const found = new Map<string, string>()
 
     for (const content of data ?? []) {
-      if (!isDocumentSlot(content.title) || found.has(content.title)) continue
+      if (!isUrlSlot(content.title) || found.has(content.title)) continue
 
-      const url = findDocumentUrl(content)
+      const url = findSlotUrl(content)
       if (url) found.set(content.title, url)
     }
 
@@ -107,7 +135,7 @@ export function useDocumentUrls() {
   return {
     ...query,
     /** URL saisie en base pour cet emplacement, `undefined` si le bloc n'existe pas. */
-    documentUrl: (slot: DocumentSlot) => urls.get(slot),
+    slotUrl: (slot: UrlSlot) => urls.get(slot),
   }
 }
 

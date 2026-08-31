@@ -6,6 +6,14 @@ export function login(username: string, password: string): Promise<SessionUser> 
   return parseRequest<SessionUser>('GET', `/login?${query}`)
 }
 
+/**
+ * Invalide la session côté serveur. Le token courant part dans les en-têtes,
+ * donc l'appel doit précéder son effacement local.
+ */
+export function logout(): Promise<unknown> {
+  return parseRequest('POST', '/logout')
+}
+
 export function fetchCurrentUser(): Promise<User> {
   return parseRequest<User>('GET', '/users/me')
 }

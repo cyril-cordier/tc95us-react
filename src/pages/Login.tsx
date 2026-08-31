@@ -5,6 +5,7 @@ import Container from 'react-bootstrap/Container'
 import Form from 'react-bootstrap/Form'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/auth/useAuth'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 
 interface LoginLocationState {
   from?: string
@@ -61,12 +62,11 @@ export default function Login() {
 
           <Form.Group className="mb-4" controlId="login-password">
             <Form.Label>Mot de passe</Form.Label>
-            <Form.Control
-              type="password"
+            <PasswordInput
               value={password}
               autoComplete="current-password"
               required
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={setPassword}
             />
           </Form.Group>
 

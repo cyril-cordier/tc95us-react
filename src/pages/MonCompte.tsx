@@ -14,6 +14,7 @@ import { ChallengeResults } from '@/components/public/ChallengeResults'
 import { ChallengeStandings } from '@/components/public/ChallengeStandings'
 import { ProductGrid } from '@/components/public/ProductGrid'
 import { PageHeader } from '@/components/ui/PageHeader'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import type { User } from '@/types'
 
 const TABS = [
@@ -109,6 +110,88 @@ function ProfileForm({ user }: { user: User }) {
   )
 }
 
+/**
+ * Changement de mot de passe, séparé du formulaire de profil.
+ *
+ * Deux formulaires distincts et non un seul : l'enregistrement des
+ * informations ne doit jamais transporter de mot de passe, ne serait-ce que
+ * vide — Parse le prendrait au mot et écraserait celui du compte.
+ */
+function PasswordForm({ user }: { user: User }) {
+  const [password, setPassword] = useState('')
+  const [confirmation, setConfirmation] = useState('')
+  const [mismatch, setMismatch] = useState(false)
+
+  const mutation = useMutation({
+    mutationFn: (next: string) => updateUser(user.objectId, { password: next }),
+    onSuccess: () => {
+      setPassword('')
+      setConfirmation('')
+    },
+  })
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    mutation.reset()
+
+    // La confirmation est vérifiée ici : une faute de frappe enfermerait le
+    // compte derrière un mot de passe que personne ne connaît.
+    if (password !== confirmation) {
+      setMismatch(true)
+      return
+    }
+
+    setMismatch(false)
+    mutation.mutate(password)
+  }
+
+  return (
+    <Form onSubmit={handleSubmit} className="admin-panel mt-4">
+      <h2 className="h5 mb-3">Changer mon mot de passe</h2>
+
+      {mutation.isSuccess ? (
+        <Alert variant="success">Votre mot de passe a été modifié.</Alert>
+      ) : null}
+      {mismatch ? (
+        <Alert variant="danger">Les deux saisies ne correspondent pas.</Alert>
+      ) : null}
+      {mutation.error ? (
+        <Alert variant="danger">{mutation.error.message}</Alert>
+      ) : null}
+
+      <Row className="g-3">
+        <Col md={6}>
+          <Form.Group controlId="profile-password">
+            <Form.Label>Nouveau mot de passe</Form.Label>
+            <PasswordInput
+              value={password}
+              autoComplete="new-password"
+              required
+              onChange={setPassword}
+            />
+          </Form.Group>
+        </Col>
+
+        <Col md={6}>
+          <Form.Group controlId="profile-password-confirmation">
+            <Form.Label>Confirmation</Form.Label>
+            <PasswordInput
+              value={confirmation}
+              autoComplete="new-password"
+              required
+              onChange={setConfirmation}
+            />
+          </Form.Group>
+        </Col>
+      </Row>
+
+      <Button type="submit" className="mt-4" disabled={mutation.isPending}>
+        {mutation.isPending ? 'Modification…' : 'Modifier le mot de passe'}
+      </Button>
+    </Form>
+  )
+}
+
 export default function MonCompte() {
   const { user } = useAuth()
 
@@ -133,7 +216,12 @@ export default function MonCompte() {
           <Col md={9}>
             <Tab.Content>
               <Tab.Pane eventKey="infos">
-                {user ? <ProfileForm user={user} /> : null}
+                {user ? (
+                  <>
+                    <ProfileForm user={user} />
+                    <PasswordForm user={user} />
+                  </>
+                ) : null}
               </Tab.Pane>
               <Tab.Pane eventKey="produits" mountOnEnter>
                 <ProductGrid />

@@ -3,6 +3,7 @@ import Form from 'react-bootstrap/Form'
 import Row from 'react-bootstrap/Row'
 import { ImageField } from './ImageField'
 import { RichTextField } from './RichTextField'
+import { PasswordInput } from '@/components/ui/PasswordInput'
 import type { FieldDef } from './types'
 
 interface ResourceFormProps<T> {
@@ -93,15 +94,16 @@ export function ResourceForm<T>({
                     required={field.required}
                     onChange={(event) => onChange(field.name, event.target.value)}
                   />
+                ) : field.type === 'password' ? (
+                  <PasswordInput
+                    value={String(value)}
+                    autoComplete="new-password"
+                    required={field.required}
+                    onChange={(next) => onChange(field.name, next)}
+                  />
                 ) : (
                   <Form.Control
-                    type={
-                      field.type === 'number'
-                        ? 'number'
-                        : field.type === 'password'
-                          ? 'password'
-                          : 'text'
-                    }
+                    type={field.type === 'number' ? 'number' : 'text'}
                     value={String(value)}
                     required={field.required}
                     onChange={(event) => onChange(field.name, event.target.value)}
