@@ -41,6 +41,10 @@ export const contentsAdmin: ResourceAdminConfig<Content> = {
   singular: 'un contenu',
   resource: contentsResource,
   describe: (content) => content.description || content.title,
+  // Une trentaine de blocs répartis sur une quinzaine d'emplacements : sans
+  // filtre ni recherche, retrouver le bon tient du défilement patient.
+  searchable: true,
+  filterBy: 'title',
   fields: [
     {
       name: 'title',
@@ -253,11 +257,13 @@ export const usersAdmin: ResourceAdminConfig<User> = {
   describe: (user) => `${user.firstname} ${user.lastname}`.trim() || user.username,
   // Parse impose un `username` unique ; l'email fait office d'identifiant.
   prepareCreate: (draft) => ({ ...draft, username: draft.email }),
-  // Ne jamais réécrire le mot de passe depuis l'écran de modification.
+  // Le mot de passe n'est réécrit que s'il a été saisi : laissé vide, il ne
+  // part pas dans la charge, sinon Parse le prendrait au mot et remplacerait
+  // celui du compte par une chaîne vide.
   prepareUpdate: (user) => {
-    const { ...rest } = user
-    delete (rest as Record<string, unknown>).password
-    return rest
+    const next = { ...user }
+    if (!next.password) delete (next as Record<string, unknown>).password
+    return next
   },
   fields: [
     { name: 'firstname', label: 'Prénom', column: true, required: true, span: 6 },
@@ -268,7 +274,7 @@ export const usersAdmin: ResourceAdminConfig<User> = {
       name: 'password',
       label: 'Mot de passe',
       type: 'password',
-      createOnly: true,
+      blankKeepsCurrent: true,
       required: true,
       span: 6,
     },

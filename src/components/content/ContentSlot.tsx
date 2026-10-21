@@ -36,6 +36,25 @@ export function ContentSlot({
         <article key={block.objectId} className="content-slot__block">
           <RichText html={block.content} />
 
+          {/* Hors signature, l'auteur et l'image étaient tous deux ignorés :
+              seul le bloc « signature » les rendait, alors que le formulaire
+              d'admin permet de les renseigner sur n'importe quel emplacement.
+              L'ordre reprend celui du site d'origine — texte, auteur, image. */}
+          {!signature && (block.name || block.fonction) ? (
+            <p className="text-muted small mb-0">
+              {[block.name, block.fonction].filter(Boolean).join(' — ')}
+            </p>
+          ) : null}
+
+          {!signature && block.image ? (
+            <img
+              src={block.image}
+              alt=""
+              className="content-slot__image"
+              loading="lazy"
+            />
+          ) : null}
+
           {signature ? (
             <footer className="content-slot__signature">
               {block.name ? <p className="fw-semibold mb-0">{block.name}</p> : null}

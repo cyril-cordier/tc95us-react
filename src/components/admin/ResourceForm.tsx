@@ -22,15 +22,22 @@ export function ResourceForm<T>({
   options,
   isCreation,
 }: ResourceFormProps<T>) {
-  const visible = fields.filter((field) => isCreation || !field.createOnly)
-
   return (
     <Row className="g-3">
-      {visible.map((field) => {
+      {fields.map((field) => {
         const value = (draft[field.name] ?? '') as string | number
         const choices = field.optionsFrom
           ? (options[field.optionsFrom] ?? [])
           : (field.options ?? [])
+
+        // En modification, un champ « vide = inchangé » ne peut pas être exigé,
+        // et il faut le dire : un champ mot de passe vide se lirait autrement
+        // comme un oubli.
+        const keepsCurrent = Boolean(field.blankKeepsCurrent) && !isCreation
+        const label = keepsCurrent
+          ? `${field.label} — laisser vide pour ne pas le changer`
+          : field.label
+        const required = field.required && !keepsCurrent
 
         return (
           <Col key={field.name} xs={12} md={field.span ?? 12}>
@@ -43,7 +50,7 @@ export function ResourceForm<T>({
               />
             ) : (
               <Form.Group controlId={`field-${field.name}`}>
-                <Form.Label>{field.label}</Form.Label>
+                <Form.Label>{label}</Form.Label>
 
                 {field.type === 'richtext' ? (
                   <RichTextField
@@ -54,7 +61,7 @@ export function ResourceForm<T>({
                 ) : field.type === 'select' ? (
                   <Form.Select
                     value={String(value)}
-                    required={field.required}
+                    required={required}
                     onChange={(event) => onChange(field.name, event.target.value)}
                   >
                     <option value="">—</option>
@@ -91,21 +98,21 @@ export function ResourceForm<T>({
                     as="textarea"
                     rows={3}
                     value={String(value)}
-                    required={field.required}
+                    required={required}
                     onChange={(event) => onChange(field.name, event.target.value)}
                   />
                 ) : field.type === 'password' ? (
                   <PasswordInput
                     value={String(value)}
                     autoComplete="new-password"
-                    required={field.required}
+                    required={required}
                     onChange={(next) => onChange(field.name, next)}
                   />
                 ) : (
                   <Form.Control
                     type={field.type === 'number' ? 'number' : 'text'}
                     value={String(value)}
-                    required={field.required}
+                    required={required}
                     onChange={(event) => onChange(field.name, event.target.value)}
                   />
                 )}

@@ -7,6 +7,18 @@ export function login(username: string, password: string): Promise<SessionUser> 
 }
 
 /**
+ * Déclenche l'envoi du mail de réinitialisation, sur le champ `email` du
+ * compte — pas sur son `username`.
+ *
+ * Parse répond 200 même pour une adresse inconnue, afin de ne pas révéler
+ * quels comptes existent : l'interface ne peut donc pas distinguer les deux
+ * cas, et ne doit pas essayer.
+ */
+export function requestPasswordReset(email: string): Promise<unknown> {
+  return parseRequest('POST', '/requestPasswordReset', { email })
+}
+
+/**
  * Invalide la session côté serveur. Le token courant part dans les en-têtes,
  * donc l'appel doit précéder son effacement local.
  */

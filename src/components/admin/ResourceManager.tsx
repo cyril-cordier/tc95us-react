@@ -1,15 +1,48 @@
 import { useMemo, useState } from 'react'
 import Button from 'react-bootstrap/Button'
+import Col from 'react-bootstrap/Col'
+import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
+import Row from 'react-bootstrap/Row'
 import Table from 'react-bootstrap/Table'
 import { useCollection, useCreate, useRemove, useUpdate } from '@/api/hooks'
 import { ErrorMessage } from '@/components/ui/ErrorMessage'
 import { Loader } from '@/components/ui/Loader'
 import { ResourceForm } from './ResourceForm'
-import type { ResourceAdminConfig } from './types'
+import type { FieldDef, ResourceAdminConfig } from './types'
 import type { ParseObject } from '@/types'
 
 type Editing<T> = { mode: 'create'; draft: Partial<T> } | { mode: 'edit'; draft: T }
+
+/** Une seule instance : construire un formateur par ligne coûte cher. */
+const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
+  dateStyle: 'short',
+  timeStyle: 'short',
+})
+
+function formatDate(value?: string): string {
+  if (!value) return '—'
+  const date = new Date(value)
+  return Number.isNaN(date.getTime()) ? '—' : DATE_FORMAT.format(date)
+}
+
+const HTML_TAGS = /<[^>]*>/g
+
+/**
+ * Texte dans lequel la recherche opère : tous les champs textuels de la ligne,
+ * balises retirées — sans quoi une recherche sur « li » trouverait chaque bloc
+ * contenant une liste.
+ */
+function searchableText<T>(item: T, fields: FieldDef<T>[]): string {
+  return fields
+    .map((field) => item[field.name])
+    .filter((value): value is T[Extract<keyof T, string>] & string =>
+      typeof value === 'string',
+    )
+    .join(' ')
+    .replace(HTML_TAGS, ' ')
+    .toLowerCase()
+}
 
 /**
  * Écran d'administration complet (liste, création, modification, suppression)
@@ -30,7 +63,43 @@ export function ResourceManager<T extends ParseObject>({
   const remove = useRemove(config.resource)
 
   const [editing, setEditing] = useState<Editing<T> | null>(null)
+  const [search, setSearch] = useState('')
+  const [filter, setFilter] = useState('')
   const dynamicOptions = config.useOptions?.() ?? {}
+
+  const items = useMemo(() => data ?? [], [data])
+
+  const { filterBy } = config
+
+  const filterOptions = useMemo(() => {
+    if (!filterBy) return []
+
+    const values = new Set<string>()
+    for (const item of items) {
+      const value = item[filterBy]
+      if (typeof value === 'string' && value) values.add(value)
+    }
+
+    return [...values].sort((a, b) => a.localeCompare(b, 'fr'))
+  }, [items, filterBy])
+
+  // L'intitulé du filtre reprend celui de la colonne, pour que les deux
+  // désignent la même chose à l'écran.
+  const filterLabel =
+    config.fields.find((field) => field.name === filterBy)?.label ?? ''
+
+  const visibleItems = useMemo(() => {
+    const needle = search.trim().toLowerCase()
+    if (!needle && !filter) return items
+
+    return items.filter((item) => {
+      if (filter && filterBy && String(item[filterBy] ?? '') !== filter) {
+        return false
+      }
+
+      return !needle || searchableText(item, config.fields).includes(needle)
+    })
+  }, [items, search, filter, filterBy, config.fields])
 
   const columns = useMemo(
     () => config.fields.filter((field) => field.column),
@@ -79,7 +148,6 @@ export function ResourceManager<T extends ParseObject>({
   if (isPending) return <Loader />
   if (error) return <ErrorMessage error={error} />
 
-  const items = data ?? []
   const mutationError = create.error ?? update.error ?? remove.error
 
   return (
@@ -93,8 +161,51 @@ export function ResourceManager<T extends ParseObject>({
 
       {mutationError ? <ErrorMessage error={mutationError} /> : null}
 
+      {(config.searchable || filterBy) && items.length > 0 ? (
+        <Row className="g-2 mb-3">
+          {filterBy ? (
+            <Col sm={6} lg={5}>
+              <Form.Select
+                aria-label={`Filtrer par ${filterLabel}`}
+                value={filter}
+                onChange={(event) => setFilter(event.target.value)}
+              >
+                <option value="">Tous</option>
+                {filterOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </Form.Select>
+            </Col>
+          ) : null}
+
+          {config.searchable ? (
+            <Col sm={6} lg={5}>
+              <Form.Control
+                type="search"
+                placeholder="Rechercher…"
+                aria-label="Rechercher"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </Col>
+          ) : null}
+
+          <Col xs="auto" className="d-flex align-items-center">
+            <span className="text-muted small">
+              {visibleItems.length} / {items.length}
+            </span>
+          </Col>
+        </Row>
+      ) : null}
+
       {items.length === 0 ? (
         <p className="text-muted">Aucun élément pour le moment.</p>
+      ) : visibleItems.length === 0 ? (
+        // Distinct du cas précédent : ici il y a des lignes, mais aucune ne
+        // correspond — sans quoi on croirait la ressource vide.
+        <p className="text-muted">Aucun élément ne correspond à cette recherche.</p>
       ) : (
         <div className="table-responsive">
           <Table striped hover className="align-middle">
@@ -112,13 +223,16 @@ export function ResourceManager<T extends ParseObject>({
                     )}
                   </th>
                 ))}
+                <th scope="col" className="text-nowrap">
+                  Modifié le
+                </th>
                 <th scope="col" className="text-end">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <tr key={item.objectId}>
                   {columns.map((field) => (
                     <td key={field.name}>
@@ -127,6 +241,9 @@ export function ResourceManager<T extends ParseObject>({
                         : String(item[field.name] ?? '')}
                     </td>
                   ))}
+                  <td className="text-nowrap text-muted small">
+                    {formatDate(item.updatedAt)}
+                  </td>
                   <td className="text-end text-nowrap">
                     <Button
                       variant="link"

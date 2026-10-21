@@ -33,8 +33,13 @@ export interface FieldDef<T> {
   acceptFor?: (draft: Partial<T>) => string
   /** Largeur du champ dans le formulaire, sur 12. */
   span?: number
-  /** Champ absent du formulaire de modification (ex. mot de passe). */
-  createOnly?: boolean
+  /**
+   * Champ qui, laissé vide en modification, conserve sa valeur actuelle : le
+   * formulaire ajoute la mention correspondante et `required` ne vaut plus
+   * qu'à la création. C'est à `prepareUpdate` de retirer la valeur vide de la
+   * charge envoyée.
+   */
+  blankKeepsCurrent?: boolean
   required?: boolean
 }
 
@@ -47,6 +52,18 @@ export interface ResourceAdminConfig<T extends ParseObject> {
   fields: FieldDef<T>[]
   /** Texte identifiant une ligne dans la confirmation de suppression. */
   describe: (item: T) => string
+  /**
+   * Ajoute une recherche plein texte au-dessus du tableau. Elle porte sur tous
+   * les champs textuels de la ressource, pas seulement sur les colonnes
+   * affichées : on cherche souvent un bloc d'après son texte.
+   */
+  searchable?: boolean
+  /**
+   * Champ proposé en filtre déroulant au-dessus du tableau. Les choix sont
+   * déduits des valeurs réellement présentes, pour ne pas lister des
+   * emplacements qu'aucune ligne n'utilise.
+   */
+  filterBy?: Extract<keyof T, string>
   /** Options dépendant d'autres données (ex. la liste des joueurs du challenge). */
   useOptions?: () => Record<string, readonly string[]>
   /** Ajuste le brouillon avant création (champs dérivés, valeurs par défaut). */

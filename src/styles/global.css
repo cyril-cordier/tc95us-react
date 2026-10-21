@@ -106,6 +106,18 @@ body {
   border-radius: 0.5rem;
 }
 
+/* Image illustrant un bloc éditorial. La version d'origine l'affichait en
+   15rem sur l'accueil : on garde cette échelle, en la rendant fluide pour
+   qu'elle ne déborde pas sur mobile. */
+.content-slot__image {
+  display: block;
+  width: 15rem;
+  max-width: 100%;
+  height: auto;
+  margin: 1rem auto 0;
+  border-radius: 0.5rem;
+}
+
 /* --- Accueil ------------------------------------------------------ */
 
 .home-banner,
