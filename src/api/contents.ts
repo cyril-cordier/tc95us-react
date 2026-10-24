@@ -46,7 +46,7 @@ export type DocumentSlot = (typeof DOCUMENT_SLOTS)[keyof typeof DOCUMENT_SLOTS]
  * le champ photo du formulaire suffit, sans le détour du PDF.
  */
 export const MEDIA_SLOTS = {
-  photoBureau: 'Photo du bureau (page Accueil)',
+  illustrationAccueil: 'Illustration de bas de page (Accueil)',
 } as const
 
 export type MediaSlot = (typeof MEDIA_SLOTS)[keyof typeof MEDIA_SLOTS]

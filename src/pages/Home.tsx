@@ -4,7 +4,7 @@ import Container from 'react-bootstrap/Container'
 import Row from 'react-bootstrap/Row'
 import { CONTENT_SLOTS, MEDIA_SLOTS, useSlotUrls } from '@/api/contents'
 import banner from '@/assets/bg-tennis5.jpg'
-import bureauParDefaut from '@/assets/bureau_small.jpg'
+import illustrationParDefaut from '@/assets/bureau_small.jpg'
 import logoAnime from '@/assets/GIF_TC_Us.gif'
 import { ContentSlot } from '@/components/content/ContentSlot'
 import { ResponsiveEmbed } from '@/components/ui/ResponsiveEmbed'
@@ -12,10 +12,16 @@ import { ResponsiveEmbed } from '@/components/ui/ResponsiveEmbed'
 export default function Home() {
   const { slotUrl } = useSlotUrls()
 
-  // L'image livrée avec le site sert de repli : la page garde sa photo tant
-  // qu'aucun bloc « Photo du bureau » n'a été créé en admin, et n'attend pas
-  // la réponse du réseau pour l'afficher.
-  const bureau = slotUrl(MEDIA_SLOTS.photoBureau) ?? bureauParDefaut
+  // L'image livrée avec le site sert de repli : la page garde son illustration
+  // tant qu'aucun bloc n'a été créé en admin, et n'attend pas la réponse du
+  // réseau pour l'afficher.
+  //
+  // L'`alt` est vide à dessein : l'emplacement accueille une illustration
+  // libre, et décrire une image qu'on ne connaît pas vaut moins que de la
+  // laisser ignorer des lecteurs d'écran. Rendre ce texte éditable serait la
+  // bonne réponse si l'image devait un jour porter de l'information.
+  const illustration =
+    slotUrl(MEDIA_SLOTS.illustrationAccueil) ?? illustrationParDefaut
 
   return (
     <>
@@ -72,7 +78,7 @@ export default function Home() {
           </Col>
         </Row>
 
-        <img src={bureau} alt="Le bureau du TC Us" className="home-bureau" />
+        <img src={illustration} alt="" className="home-bureau" />
       </Container>
     </>
   )
