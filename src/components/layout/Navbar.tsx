@@ -2,7 +2,8 @@ import BsNavbar from 'react-bootstrap/Navbar'
 import Container from 'react-bootstrap/Container'
 import Nav from 'react-bootstrap/Nav'
 import NavDropdown from 'react-bootstrap/NavDropdown'
-import { Link, NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
 import logo from '@/assets/LOGO_T_US_RVB.png'
 import { useAuth } from '@/auth/useAuth'
 
@@ -23,6 +24,20 @@ const COMPETITION_LINKS = [
 export function Navbar() {
   const { isAuthenticated, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  /**
+   * Le repli du menu est piloté ici plutôt que laissé à `collapseOnSelect`.
+   * Celui-ci s'appuie sur l'`eventKey` ou le `href` d'un lien, or les nôtres
+   * sont des `NavLink` de React Router qui portent un `to` : l'évènement de
+   * sélection n'était jamais émis et le menu restait ouvert par-dessus la
+   * page qu'on venait d'atteindre.
+   */
+  const [expanded, setExpanded] = useState(false)
+
+  // Couvre aussi les retours arrière du navigateur et la redirection de
+  // déconnexion, qu'un simple clic sur un lien n'attraperait pas.
+  useEffect(() => setExpanded(false), [location.pathname])
 
   // La redirection vit ici et non dans `signOut` : `AuthProvider` enveloppe le
   // `RouterProvider`, il n'a donc pas accès aux hooks de navigation.
@@ -32,7 +47,13 @@ export function Navbar() {
   }
 
   return (
-    <BsNavbar expand="lg" fixed="top" className="tc-navbar" collapseOnSelect>
+    <BsNavbar
+      expand="lg"
+      fixed="top"
+      className="tc-navbar"
+      expanded={expanded}
+      onToggle={setExpanded}
+    >
       <Container fluid>
         <BsNavbar.Brand as={Link} to="/">
           <img src={logo} alt="Tennis Club de Us" height={64} />
@@ -40,7 +61,14 @@ export function Navbar() {
 
         <BsNavbar.Toggle aria-controls="tc-navbar-nav" />
 
-        <BsNavbar.Collapse id="tc-navbar-nav">
+        {/* Replie aussi quand on retape le lien de la page courante : le
+            chemin ne change pas, l'effet ci-dessus ne se déclencherait pas. */}
+        <BsNavbar.Collapse
+          id="tc-navbar-nav"
+          onClick={(event) => {
+            if ((event.target as HTMLElement).closest('a')) setExpanded(false)
+          }}
+        >
           <Nav className="me-auto">
             <Nav.Link as={NavLink} to="/" end>
               Accueil
