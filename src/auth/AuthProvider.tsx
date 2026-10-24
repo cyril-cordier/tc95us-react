@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isLoading: isLoading && Boolean(token),
       isAuthenticated: Boolean(user),
       isAdmin: user?.admin === true,
+      isSuperAdmin: user?.superadmin === true,
       signIn,
       signOut,
     }),

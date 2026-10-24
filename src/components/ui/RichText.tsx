@@ -5,5 +5,10 @@
  * authentifiés) : c'est la même confiance que le `v-html` de la version Vue.
  */
 export function RichText({ html, className }: { html: string; className?: string }) {
-  return <div className={className} dangerouslySetInnerHTML={{ __html: html }} />
+  return (
+    <div
+      className={className ? `rich-text ${className}` : 'rich-text'}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
+  )
 }

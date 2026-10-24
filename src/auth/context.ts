@@ -6,6 +6,7 @@ export interface AuthState {
   isLoading: boolean
   isAuthenticated: boolean
   isAdmin: boolean
+  isSuperAdmin: boolean
   signIn: (username: string, password: string) => Promise<void>
   signOut: () => void
 }

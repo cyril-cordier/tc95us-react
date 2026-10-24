@@ -19,6 +19,8 @@ export interface Resource<T extends ParseObject> {
   path: string
   /** Ordre d'affichage appliqué après réception. */
   sort?: (a: T, b: T) => number
+  /** Paramètres REST ajoutés à la lecture (`where`, `keys`…), filtrés côté serveur. */
+  query?: Record<string, string>
   /** Champs à convertir en nombre avant écriture (les inputs renvoient du texte). */
   numeric?: readonly (keyof T & string)[]
 }

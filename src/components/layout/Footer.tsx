@@ -1,8 +1,9 @@
 import Container from 'react-bootstrap/Container'
 import { Link } from 'react-router-dom'
+import { MODIFIED_AT, VERSION } from 'virtual:build-info'
+import clubAffilie from '@/assets/logoclubaffilie.png'
 import ecosport from '@/assets/ecosport_small.jpg'
 import technifibre from '@/assets/technifibre_small.jpg'
-import clubAffilie from '@/assets/logoclubaffilie.png'
 import { RevealButton } from '@/components/ui/RevealButton'
 
 const USEFUL_LINKS = [
@@ -13,6 +14,22 @@ const USEFUL_LINKS = [
     label: "Le comité du Val d'Oise",
   },
 ]
+
+/**
+ * `MODIFIED_AT` est la date du dernier commit, injectée au build. Le repli
+ * couvre le cas, improbable mais pas impossible, d'un historique git absent
+ * au moment de la construction.
+ */
+function formatModifiedAt(): string {
+  const date = new Date(MODIFIED_AT)
+  if (Number.isNaN(date.getTime())) return '—'
+
+  return date.toLocaleDateString('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  })
+}
 
 export function Footer() {
   return (
@@ -114,6 +131,9 @@ export function Footer() {
 
       <div className="footer-baseline">
         <span>Site créé par Cyril CORDIER</span>
+        <span>
+          Version {VERSION} — mis à jour le {formatModifiedAt()}
+        </span>
         <Link className="footer-link" to="/admin">
           Accès admin
         </Link>

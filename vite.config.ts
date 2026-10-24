@@ -1,3 +1,5 @@
+import { execSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fileURLToPath, URL } from 'node:url'
@@ -16,31 +18,47 @@ function cloudinaryCloudName(value: string): string {
   return trimmed.match(/@([^@/]+)\/?$/)?.[1] ?? trimmed
 }
 
-const CLOUDINARY_MODULE_ID = 'virtual:cloudinary-cloud'
-const RESOLVED_CLOUDINARY_MODULE_ID = `\0${CLOUDINARY_MODULE_ID}`
-
 /**
- * Publie le nom du cloud sous forme de module virtuel.
+ * Expose une valeur calculée au build sous forme de module virtuel.
  *
  * Un `define` ne conviendrait pas : le plugin `vite:define` de Vite sort sans
  * rien remplacer en dev côté client (`consumer === 'client' && !isBuild`), et
  * le `/@vite/env` qui poserait le global n'est injecté que dans les workers.
- * L'identifiant resterait donc libre et lèverait un ReferenceError au
- * chargement de l'admin. Un module virtuel, lui, suit la résolution normale et
- * se comporte pareil en dev et au build.
+ * L'identifiant resterait libre et lèverait un ReferenceError au chargement.
+ * Un module virtuel, lui, suit la résolution normale et se comporte pareil en
+ * dev et au build.
  */
-function cloudinaryCloud(cloudName: string): Plugin {
+function virtualModule(id: string, source: () => string): Plugin {
+  const resolved = `\0${id}`
+
   return {
-    name: 'tc-cloudinary-cloud',
-    resolveId(source) {
-      return source === CLOUDINARY_MODULE_ID ? RESOLVED_CLOUDINARY_MODULE_ID : null
-    },
-    load(id) {
-      return id === RESOLVED_CLOUDINARY_MODULE_ID
-        ? `export const CLOUD_NAME = ${JSON.stringify(cloudName)}\n`
-        : null
-    },
+    name: `tc-${id.replace(/[^a-z0-9]+/gi, '-')}`,
+    resolveId: (imported) => (imported === id ? resolved : null),
+    load: (loaded) => (loaded === resolved ? source() : null),
   }
+}
+
+/**
+ * Version et date affichées en pied de page.
+ *
+ * La date est celle du dernier commit — la vraie date de modification du site,
+ * qui avance donc d'elle-même à chaque publication. Repli sur l'heure du build
+ * si l'historique git n'est pas disponible, ce qui arrive sur une archive
+ * déployée sans dépôt.
+ */
+function buildInfo() {
+  const { version } = JSON.parse(readFileSync('./package.json', 'utf8')) as {
+    version: string
+  }
+
+  let modifiedAt: string
+  try {
+    modifiedAt = execSync('git log -1 --format=%cI', { encoding: 'utf8' }).trim()
+  } catch {
+    modifiedAt = new Date().toISOString()
+  }
+
+  return { version, modifiedAt }
 }
 
 export default defineConfig(({ mode }) => {
@@ -57,7 +75,24 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    plugins: [react(), cloudinaryCloud(cloudinaryCloudName(env.CLOUDINARY_URL ?? ''))],
+    plugins: [
+      react(),
+      virtualModule(
+        'virtual:cloudinary-cloud',
+        () =>
+          `export const CLOUD_NAME = ${JSON.stringify(
+            cloudinaryCloudName(env.CLOUDINARY_URL ?? ''),
+          )}\n`,
+      ),
+      virtualModule('virtual:build-info', () => {
+        const { version, modifiedAt } = buildInfo()
+
+        return (
+          `export const VERSION = ${JSON.stringify(version)}\n` +
+          `export const MODIFIED_AT = ${JSON.stringify(modifiedAt)}\n`
+        )
+      }),
+    ],
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },

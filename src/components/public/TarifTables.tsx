@@ -13,7 +13,7 @@ function SimpleTable({ title, rows }: { title: string; rows: Tarif[] }) {
     <section className="mb-5">
       <h2 className="h4">{title}</h2>
       <div className="table-responsive">
-        <Table striped>
+        <Table striped className="tarif-simple">
           <thead>
             <tr>
               <th scope="col">Catégorie</th>
@@ -23,7 +23,15 @@ function SimpleTable({ title, rows }: { title: string; rows: Tarif[] }) {
           <tbody>
             {rows.map((row) => (
               <tr key={row.objectId}>
-                <td>{row.category}</td>
+                <td>
+                  {row.category}
+                  {/* Les forfaits ont besoin d'une explication que les
+                      licences et cotisations n'utilisent pas : la ligne reste
+                      absente quand le champ est vide. */}
+                  {row.details ? (
+                    <div className="text-muted small">{row.details}</div>
+                  ) : null}
+                </td>
                 <td>{row.price1}</td>
               </tr>
             ))}
@@ -43,7 +51,7 @@ function CoursTable({
   title: string
   subtitle?: string
   rows: Tarif[]
-  columns: { label: string; field: 'price1' | 'price2' | 'price3' }[]
+  columns: { label: string; field: keyof Pick<Tarif, 'price1' | 'price2' | 'price3' | 'price4' | 'price5'> }[]
 }) {
   if (rows.length === 0) return null
 
@@ -52,7 +60,7 @@ function CoursTable({
       <h2 className="h4">{title}</h2>
       {subtitle ? <p className="text-muted">{subtitle}</p> : null}
       <div className="table-responsive">
-        <Table striped>
+        <Table striped className="tarif-cours">
           <thead>
             <tr>
               <th scope="col">Temps / semaine</th>
@@ -86,13 +94,12 @@ export function TarifTables() {
   // Vue, qui laissaient des cellules vides quand la condition ne passait pas.
   const groups = useMemo(() => {
     const tarifs = data ?? []
-    const cours = tarifs.filter((tarif) => tarif.type === 'Cours')
 
     return {
       licences: tarifs.filter((tarif) => tarif.type === 'Licence'),
       cotisations: tarifs.filter((tarif) => tarif.type === 'Cotisation'),
-      coursComplets: cours.filter((tarif) => tarif.details !== 'Seul'),
-      coursSeuls: cours.filter((tarif) => tarif.details === 'Seul'),
+      cours: tarifs.filter((tarif) => tarif.type === 'Cours'),
+      forfaits: tarifs.filter((tarif) => tarif.type === 'Forfait'),
     }
   }, [data])
 
@@ -114,23 +121,17 @@ export function TarifTables() {
       <CoursTable
         title="Cours (dispensés par un diplômé d'État)"
         subtitle="Formules complètes — cours, licence et cotisation incluses."
-        rows={groups.coursComplets}
+        rows={groups.cours}
         columns={[
-          { label: '45 minutes', field: 'price1' },
-          { label: '1 heure', field: 'price2' },
-          { label: '1 heure 30', field: 'price3' },
+          { label: '45 min', field: 'price1' },
+          { label: '1h', field: 'price2' },
+          { label: 'Renfo. 1h+1h', field: 'price4' },
+          { label: '1h30', field: 'price3' },
+          { label: 'Compét. 1h30+1h30', field: 'price5' },
         ]}
       />
 
-      <CoursTable
-        title="Cours seul"
-        subtitle="Dans le cas d'une adhésion couple, licence incluse."
-        rows={groups.coursSeuls}
-        columns={[
-          { label: '1 heure', field: 'price1' },
-          { label: '1 heure 30', field: 'price2' },
-        ]}
-      />
+      <SimpleTable title="Forfaits" rows={groups.forfaits} />
     </>
   )
 }

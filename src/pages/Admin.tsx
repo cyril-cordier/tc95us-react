@@ -75,7 +75,7 @@ export default function Admin() {
         onSelect={(key) => setActiveKey(key ?? DEFAULT_KEY)}
       >
         <Row className="g-4">
-          <Col md={3} xl={2}>
+          <Col md={3} lg="auto">
             <Nav variant="pills" className="flex-column sticky-nav">
               {sections.map((section) => (
                 <Nav.Item key={section.key}>
@@ -85,7 +85,7 @@ export default function Admin() {
             </Nav>
           </Col>
 
-          <Col md={9} xl={10}>
+          <Col md={9} lg>
             <Tab.Content>
               {sections.map((section) => (
                 <Tab.Pane key={section.key} eventKey={section.key} mountOnEnter>

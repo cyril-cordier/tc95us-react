@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { useCollection } from './hooks'
-import { contentsResource } from './resources'
+import type { Resource } from './resources'
+import { byWeightDesc } from '@/lib/sort'
 import type { Content } from '@/types'
 
 /**
@@ -79,9 +80,27 @@ export function isUrlSlot(title?: string): boolean {
   return title !== undefined && URL_SLOT_VALUES.includes(title)
 }
 
+/**
+ * Même classe que `contentsResource`, moins les archives.
+ *
+ * Les blocs archivés ne s'affichent sur aucune page, mais ils pèsent 95 % de
+ * la classe : l'éditeur riche y a enregistré des images collées en base64,
+ * jusqu'à 400 Ko pour un seul bloc. Les écarter côté serveur ramène la lecture
+ * d'environ 900 Ko à une quarantaine. L'administration continue d'utiliser
+ * `contentsResource`, puisqu'elle doit pouvoir rouvrir ces archives.
+ */
+const publicContentsResource: Resource<Content> = {
+  key: 'contents-public',
+  path: '/classes/contents',
+  sort: byWeightDesc,
+  query: {
+    where: JSON.stringify({ title: { $ne: CONTENT_SLOTS.archive } }),
+  },
+}
+
 /** Tous les blocs d'un emplacement donné, déjà triés par importance. */
 export function useContentSlot(slot: ContentSlot) {
-  const query = useCollection(contentsResource)
+  const query = useCollection(publicContentsResource)
 
   return {
     ...query,
@@ -116,7 +135,7 @@ function findSlotUrl(content: Content): string | undefined {
  * remplaçant avec une importance plus faible sans supprimer celui en place.
  */
 export function useSlotUrls() {
-  const query = useCollection(contentsResource)
+  const query = useCollection(publicContentsResource)
   const { data } = query
 
   const urls = useMemo(() => {

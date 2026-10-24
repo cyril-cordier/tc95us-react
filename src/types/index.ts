@@ -45,14 +45,17 @@ export interface OfficeUser extends ParseObject {
 export interface Tarif extends ParseObject {
   type: TarifType
   category: string
+  /** Formules de cours, dans l'ordre des colonnes du tableau public. */
   price1: string
   price2: string
   price3: string
+  price4: string
+  price5: string
   details: string
   weight: number
 }
 
-export type TarifType = 'Licence' | 'Cotisation' | 'Cours'
+export type TarifType = 'Licence' | 'Cotisation' | 'Cours' | 'Forfait'
 
 export interface Championnat extends ParseObject {
   date: string
@@ -102,6 +105,11 @@ export interface User extends ParseObject {
   admin: boolean
   /** Uniquement en écriture : Parse ne renvoie jamais ce champ. */
   password?: string
+  /**
+   * Compte protégé : seul un autre super administrateur peut le modifier
+   * ou le supprimer depuis l'écran d'administration. Se règle en base.
+   */
+  superadmin?: boolean
 }
 
 export interface SessionUser extends User {

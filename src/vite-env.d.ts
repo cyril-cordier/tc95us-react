@@ -17,3 +17,10 @@ declare module 'virtual:cloudinary-cloud' {
   /** Nom du cloud Cloudinary, extrait de `CLOUDINARY_URL` par `vite.config.ts`. */
   export const CLOUD_NAME: string
 }
+
+declare module 'virtual:build-info' {
+  /** Version de `package.json`, avancée à chaque publication. */
+  export const VERSION: string
+  /** Date du dernier commit, au format ISO. */
+  export const MODIFIED_AT: string
+}

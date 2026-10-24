@@ -90,6 +90,19 @@ body {
   height: 100%;
 }
 
+/**
+ * Le contenu éditorial provient de copier-coller de traitement de texte : des
+ * phrases entières y sont reliées par des espaces insécables — soixante-quinze
+ * caractères sans un seul espace ordinaire sur la page Tarifs. Le navigateur
+ * les traite comme un mot unique et les laisse déborder de l'écran plutôt que
+ * de les couper. Cette règle l'autorise à rompre un mot qui ne tient pas, et
+ * elle seulement : le texte ordinaire continue de passer à la ligne entre les
+ * mots.
+ */
+.rich-text {
+  overflow-wrap: break-word;
+}
+
 .content-slot__block + .content-slot__block {
   border-top: 1px solid #e9ecef;
   margin-top: 1.5rem;
@@ -137,6 +150,32 @@ body {
   overflow: hidden;
 }
 
+/* --- Tarifs -------------------------------------------------------- */
+
+/* Les tableaux « catégorie / tarif » sont empilés les uns sous les autres.
+   En disposition automatique chacun calibre sa première colonne sur son
+   propre contenu, si bien que la colonne des prix ne tombe jamais au même
+   endroit d'un tableau à l'autre. Une largeur fixe pour la colonne des
+   montants les aligne tous. */
+.tarif-simple {
+  table-layout: fixed;
+}
+
+/* Six colonnes de formules ne tiennent pas sur un téléphone. Sans consigne,
+   le tableau se comprime jusqu'à replier « Renfo. 1h+1h » sur trois lignes de
+   65 px de large, et il ne reste presque rien à faire défiler. On laisse
+   chaque colonne prendre sa largeur naturelle : le conteneur `table-responsive`
+   se charge alors d'un vrai défilement horizontal. */
+.tarif-cours th,
+.tarif-cours td {
+  white-space: nowrap;
+}
+
+.tarif-simple th:last-child,
+.tarif-simple td:last-child {
+  width: 10rem;
+}
+
 /* --- Listes et grilles -------------------------------------------- */
 
 .office-portrait,
@@ -154,6 +193,17 @@ body {
   background: #fff;
   border-radius: 0.5rem;
   padding: 1.5rem;
+}
+
+/* Une cellule de tableau ignore `max-width` en disposition automatique :
+   la contrainte doit porter sur un élément intérieur. */
+.admin-cell-truncate {
+  display: inline-block;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 
 .admin-preview {

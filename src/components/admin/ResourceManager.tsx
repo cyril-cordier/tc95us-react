@@ -5,7 +5,7 @@ import Form from 'react-bootstrap/Form'
 import Modal from 'react-bootstrap/Modal'
 import Row from 'react-bootstrap/Row'
 import Table from 'react-bootstrap/Table'
-import { useCollection, useCreate, useRemove, useUpdate } from '@/api/hooks'
+import { useCollection, useCreate, useRemove, useReorder, useUpdate } from '@/api/hooks'
 import { ErrorMessage } from '@/components/ui/ErrorMessage'
 import { Loader } from '@/components/ui/Loader'
 import { ResourceForm } from './ResourceForm'
@@ -13,6 +13,11 @@ import type { FieldDef, ResourceAdminConfig } from './types'
 import type { ParseObject } from '@/types'
 
 type Editing<T> = { mode: 'create'; draft: Partial<T> } | { mode: 'edit'; draft: T }
+
+/** Les ressources classables portent toutes ce champ, hérité de la base Vue. */
+type Ordered = ParseObject & { weight?: number }
+
+const weightOf = (item: ParseObject) => (item as Ordered).weight ?? 0
 
 /** Une seule instance : construire un formateur par ligne coûte cher. */
 const DATE_FORMAT = new Intl.DateTimeFormat('fr-FR', {
@@ -61,13 +66,24 @@ export function ResourceManager<T extends ParseObject>({
   const create = useCreate(config.resource)
   const update = useUpdate(config.resource)
   const remove = useRemove(config.resource)
+  const reorder = useReorder(config.resource)
 
   const [editing, setEditing] = useState<Editing<T> | null>(null)
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState('')
+  const [showArchived, setShowArchived] = useState(false)
   const dynamicOptions = config.useOptions?.() ?? {}
+  const permissions = config.usePermissions?.() ?? {}
 
-  const items = useMemo(() => data ?? [], [data])
+  const { archived } = config
+
+  // L'exclusion opère en amont du filtre et de la recherche : les lignes
+  // archivées ne doivent apparaître ni dans la liste, ni parmi les choix du
+  // filtre, tant que l'interrupteur est éteint.
+  const items = useMemo(() => {
+    const all = data ?? []
+    return !archived || showArchived ? all : all.filter((item) => !archived.match(item))
+  }, [data, archived, showArchived])
 
   const { filterBy } = config
 
@@ -88,18 +104,53 @@ export function ResourceManager<T extends ParseObject>({
   const filterLabel =
     config.fields.find((field) => field.name === filterBy)?.label ?? ''
 
+  /**
+   * Texte indexé une fois par jeu de données, et non à chaque frappe : sur les
+   * contenus, concaténer puis nettoyer les champs représente plusieurs
+   * centaines de kilo-octets de chaînes, ce qui se sentait à la saisie.
+   */
+  const searchIndex = useMemo(() => {
+    if (!config.searchable) return null
+
+    const index = new Map<string, string>()
+    for (const item of items) {
+      index.set(item.objectId, searchableText(item, config.fields))
+    }
+
+    return index
+  }, [items, config.searchable, config.fields])
+
+  /**
+   * Un filtre peut désigner une catégorie qui n'est plus proposée : archives
+   * masquées à nouveau, ou dernière ligne d'une catégorie supprimée. On
+   * l'ignore alors plutôt que de renvoyer une liste vide sous un déroulant
+   * qui affiche « Tous ». La valeur reste en mémoire : rallumer les archives
+   * restaure le filtre tel quel.
+   */
+  const effectiveFilter = filterOptions.includes(filter) ? filter : ''
+
   const visibleItems = useMemo(() => {
     const needle = search.trim().toLowerCase()
-    if (!needle && !filter) return items
+    if (!needle && !effectiveFilter) return items
 
     return items.filter((item) => {
-      if (filter && filterBy && String(item[filterBy] ?? '') !== filter) {
+      if (effectiveFilter && filterBy && String(item[filterBy] ?? '') !== effectiveFilter) {
         return false
       }
 
-      return !needle || searchableText(item, config.fields).includes(needle)
+      return !needle || (searchIndex?.get(item.objectId) ?? '').includes(needle)
     })
-  }, [items, search, filter, filterBy, config.fields])
+  }, [items, search, effectiveFilter, filterBy, searchIndex])
+
+  const { hiddenFields } = permissions
+
+  const formFields = useMemo(
+    () =>
+      hiddenFields?.length
+        ? config.fields.filter((field) => !hiddenFields.includes(field.name))
+        : config.fields,
+    [config.fields, hiddenFields],
+  )
 
   const columns = useMemo(
     () => config.fields.filter((field) => field.column),
@@ -128,7 +179,15 @@ export function ResourceManager<T extends ParseObject>({
     if (!editing) return
 
     if (editing.mode === 'create') {
-      const draft = config.prepareCreate?.(editing.draft) ?? editing.draft
+      let draft = config.prepareCreate?.(editing.draft) ?? editing.draft
+
+      // Une ligne nouvelle se place en tête : on la voit aussitôt, et on la
+      // descend ensuite si sa place est ailleurs.
+      if (config.orderable) {
+        const top = items.reduce((max, item) => Math.max(max, weightOf(item)), 0)
+        draft = { ...draft, weight: top + 1 } as Partial<T>
+      }
+
       await create.mutateAsync(draft)
     } else {
       const item = config.prepareUpdate?.(editing.draft) ?? editing.draft
@@ -138,7 +197,43 @@ export function ResourceManager<T extends ParseObject>({
     setEditing(null)
   }
 
+  async function handleMove(index: number, direction: -1 | 1) {
+    const current = visibleItems[index]
+    const neighbour = visibleItems[index + direction]
+    if (!current || !neighbour) return
+
+    // Le déplacement s'applique à la liste entière, mais se repère sur la
+    // voisine *visible* : sous un filtre, les lignes masquées qui les séparent
+    // relèvent d'autres catégories, jamais affichées avec celle-ci.
+    const target = [...items]
+    target.splice(target.indexOf(current), 1)
+    target.splice(
+      target.indexOf(neighbour) + (direction > 0 ? 1 : 0),
+      0,
+      current,
+    )
+
+    // Les poids hérités comportent de nombreux ex æquo — onze contenus à 10,
+    // quinze à 0. Une simple permutation ne déplacerait pas la ligne d'un rang :
+    // on renumérote depuis l'ordre voulu, en n'écrivant que les lignes dont la
+    // valeur change réellement.
+
+    const changes = target
+      .map((item, position) => ({
+        item,
+        objectId: item.objectId,
+        weight: target.length - position,
+      }))
+      .filter((change) => weightOf(change.item) !== change.weight)
+      .map(({ objectId, weight }) => ({ objectId, weight }))
+
+    if (changes.length > 0) await reorder.mutateAsync(changes)
+  }
+
   function handleDelete(item: T) {
+    // Le bouton est désactivé, mais l'interdit doit tenir aussi côté action.
+    if (config.usePermissions && permissions.deleteBlocked?.(item)) return
+
     const confirmed = window.confirm(
       `Supprimer définitivement « ${config.describe(item)} » ?`,
     )
@@ -148,7 +243,24 @@ export function ResourceManager<T extends ParseObject>({
   if (isPending) return <Loader />
   if (error) return <ErrorMessage error={error} />
 
-  const mutationError = create.error ?? update.error ?? remove.error
+  const isReordering = reorder.isPending
+  // Le filtre, lui, n'empêche rien : il isole justement la catégorie qui
+  // s'affiche d'un bloc côté public, et c'est là que l'ordre compte. Une
+  // recherche libre, en revanche, découpe un sous-ensemble arbitraire dont le
+  // voisinage ne veut rien dire.
+  const isSearching = Boolean(search.trim())
+  // Hors catégorie, descendre une ligne « sous » une ligne d'une autre
+  // catégorie ne veut rien dire : les deux ne s'affichent jamais ensemble.
+  // L'ordre ne prend son sens qu'une fois le filtre posé.
+  const needsCategory = Boolean(filterBy) && !effectiveFilter
+  const reorderHint = isSearching
+    ? 'Effacez la recherche pour réordonner les lignes.'
+    : needsCategory
+      ? `Filtrez par « ${filterLabel} » pour réordonner les lignes.`
+      : undefined
+
+  const mutationError =
+    create.error ?? update.error ?? remove.error ?? reorder.error
 
   return (
     <section className="admin-panel">
@@ -161,13 +273,13 @@ export function ResourceManager<T extends ParseObject>({
 
       {mutationError ? <ErrorMessage error={mutationError} /> : null}
 
-      {(config.searchable || filterBy) && items.length > 0 ? (
+      {config.searchable || filterBy || archived ? (
         <Row className="g-2 mb-3">
           {filterBy ? (
             <Col sm={6} lg={5}>
               <Form.Select
                 aria-label={`Filtrer par ${filterLabel}`}
-                value={filter}
+                value={effectiveFilter}
                 onChange={(event) => setFilter(event.target.value)}
               >
                 <option value="">Tous</option>
@@ -197,6 +309,19 @@ export function ResourceManager<T extends ParseObject>({
               {visibleItems.length} / {items.length}
             </span>
           </Col>
+
+          {archived ? (
+            <Col xs={12}>
+              <Form.Check
+                type="switch"
+                id={`show-archived-${config.resource.key}`}
+                className="text-muted small"
+                label={archived.label}
+                checked={showArchived}
+                onChange={(event) => setShowArchived(event.target.checked)}
+              />
+            </Col>
+          ) : null}
         </Row>
       ) : null}
 
@@ -232,22 +357,80 @@ export function ResourceManager<T extends ParseObject>({
               </tr>
             </thead>
             <tbody>
-              {visibleItems.map((item) => (
+              {visibleItems.map((item, index) => {
+                const editBlocked = permissions.editBlocked?.(item)
+                const deleteBlocked = permissions.deleteBlocked?.(item)
+
+                return (
                 <tr key={item.objectId}>
-                  {columns.map((field) => (
-                    <td key={field.name}>
-                      {field.render
-                        ? field.render(item)
-                        : String(item[field.name] ?? '')}
-                    </td>
-                  ))}
+                  {/* Chaque interdit porte son motif, affiché en infobulle. */}
+                  {columns.map((field) => {
+                    const text = String(item[field.name] ?? '')
+
+                    return (
+                      <td key={field.name}>
+                        {field.render ? (
+                          field.render(item)
+                        ) : field.truncateColumn ? (
+                          // `title` suffit à révéler la suite au survol, sans
+                          // dépendance ni état à gérer.
+                          <span
+                            className="admin-cell-truncate"
+                            style={
+                              typeof field.truncateColumn === 'number'
+                                ? { maxWidth: `${field.truncateColumn}rem` }
+                                : undefined
+                            }
+                            title={text}
+                          >
+                            {text}
+                          </span>
+                        ) : (
+                          text
+                        )}
+                      </td>
+                    )
+                  })}
                   <td className="text-nowrap text-muted small">
                     {formatDate(item.updatedAt)}
                   </td>
                   <td className="text-end text-nowrap">
+                    {config.orderable ? (
+                      <>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-secondary"
+                          disabled={index === 0 || isReordering || isSearching || needsCategory}
+                          title={reorderHint}
+                          aria-label={`Monter ${config.describe(item)}`}
+                          onClick={() => handleMove(index, -1)}
+                        >
+                          <i className="fas fa-arrow-up" aria-hidden />
+                        </Button>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="text-secondary"
+                          disabled={
+                            index === visibleItems.length - 1 ||
+                            isReordering ||
+                            isSearching ||
+                            needsCategory
+                          }
+                          title={reorderHint}
+                          aria-label={`Descendre ${config.describe(item)}`}
+                          onClick={() => handleMove(index, 1)}
+                        >
+                          <i className="fas fa-arrow-down" aria-hidden />
+                        </Button>
+                      </>
+                    ) : null}
                     <Button
                       variant="link"
                       size="sm"
+                      disabled={Boolean(editBlocked)}
+                      title={editBlocked}
                       aria-label={`Modifier ${config.describe(item)}`}
                       onClick={() => setEditing({ mode: 'edit', draft: { ...item } })}
                     >
@@ -257,6 +440,8 @@ export function ResourceManager<T extends ParseObject>({
                       variant="link"
                       size="sm"
                       className="text-danger"
+                      disabled={Boolean(deleteBlocked)}
+                      title={deleteBlocked}
                       aria-label={`Supprimer ${config.describe(item)}`}
                       onClick={() => handleDelete(item)}
                     >
@@ -264,7 +449,8 @@ export function ResourceManager<T extends ParseObject>({
                     </Button>
                   </td>
                 </tr>
-              ))}
+                )
+              })}
             </tbody>
           </Table>
         </div>
@@ -286,7 +472,7 @@ export function ResourceManager<T extends ParseObject>({
           <Modal.Body>
             {editing ? (
               <ResourceForm
-                fields={config.fields}
+                fields={formFields}
                 draft={editing.draft}
                 onChange={handleChange}
                 options={dynamicOptions}

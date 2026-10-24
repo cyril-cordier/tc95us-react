@@ -22,9 +22,11 @@ export function ResourceForm<T>({
   options,
   isCreation,
 }: ResourceFormProps<T>) {
+  const visible = fields.filter((field) => field.showFor?.(draft) ?? true)
+
   return (
     <Row className="g-3">
-      {fields.map((field) => {
+      {visible.map((field) => {
         const value = (draft[field.name] ?? '') as string | number
         const choices = field.optionsFrom
           ? (options[field.optionsFrom] ?? [])
@@ -34,16 +36,17 @@ export function ResourceForm<T>({
         // et il faut le dire : un champ mot de passe vide se lirait autrement
         // comme un oubli.
         const keepsCurrent = Boolean(field.blankKeepsCurrent) && !isCreation
+        const base = field.labelFor?.(draft) ?? field.label
         const label = keepsCurrent
-          ? `${field.label} — laisser vide pour ne pas le changer`
-          : field.label
+          ? `${base} — laisser vide pour ne pas le changer`
+          : base
         const required = field.required && !keepsCurrent
 
         return (
           <Col key={field.name} xs={12} md={field.span ?? 12}>
             {field.type === 'image' ? (
               <ImageField
-                label={field.labelFor?.(draft) ?? field.label}
+                label={label}
                 accept={field.acceptFor?.(draft) ?? 'image/*'}
                 value={String(value)}
                 onChange={(url) => onChange(field.name, url)}
