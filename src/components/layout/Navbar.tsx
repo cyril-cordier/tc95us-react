@@ -62,11 +62,18 @@ export function Navbar() {
         <BsNavbar.Toggle aria-controls="tc-navbar-nav" />
 
         {/* Replie aussi quand on retape le lien de la page courante : le
-            chemin ne change pas, l'effet ci-dessus ne se déclencherait pas. */}
+            chemin ne change pas, l'effet ci-dessus ne se déclencherait pas.
+
+            Les entêtes de sous-menu sont elles aussi des <a> : les exclure
+            est indispensable, sinon ouvrir « Le Club » referme le menu avant
+            qu'on ait pu atteindre le second niveau. */}
         <BsNavbar.Collapse
           id="tc-navbar-nav"
           onClick={(event) => {
-            if ((event.target as HTMLElement).closest('a')) setExpanded(false)
+            const lien = (event.target as HTMLElement).closest('a')
+            if (lien && !lien.classList.contains('dropdown-toggle')) {
+              setExpanded(false)
+            }
           }}
         >
           <Nav className="me-auto">
