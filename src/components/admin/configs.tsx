@@ -345,13 +345,28 @@ export const usersAdmin: ResourceAdminConfig<User> = {
   // celui du compte par une chaîne vide.
   prepareUpdate: (user) => {
     const next = { ...user }
+    // Mot de passe et email suivent la même règle : laissés vides, ils ne
+    // partent pas dans la charge. Sans quoi Parse les prendrait au mot et
+    // effacerait l'adresse d'un compte qu'on n'a pas le droit de lire.
     if (!next.password) delete (next as Record<string, unknown>).password
+    if (!next.email) delete (next as Record<string, unknown>).email
     return next
   },
   fields: [
     { name: 'firstname', label: 'Prénom', column: true, required: true, span: 6 },
     { name: 'lastname', label: 'Nom', column: true, required: true, span: 6 },
-    { name: 'email', label: 'Email', column: true, required: true, span: 6 },
+    {
+      name: 'email',
+      label: 'Email',
+      // Parse ne renvoie l'email que pour le compte du jeton de session : sur
+      // tous les autres, le champ arrive vide. Exigé en modification, il
+      // rendait le formulaire impossible à enregistrer pour autrui. Il reste
+      // obligatoire à la création, où l'on connaît forcément l'adresse.
+      blankKeepsCurrent: true,
+      column: true,
+      required: true,
+      span: 6,
+    },
     { name: 'challengename', label: 'Pseudo challenge', column: true, span: 6 },
     {
       name: 'password',
